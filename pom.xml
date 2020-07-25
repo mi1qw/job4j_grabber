@@ -202,22 +202,16 @@
 
     <profiles>
         <profile>
-            <id>grabber</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <db.url>jdbc:postgresql://localhost/grabber</db.url>
-                <db.username>postgres</db.username>
-                <db.password>Password12!</db.password>
-                <db.driver>org.postgresql.Driver</db.driver>
-            </properties>
-        </profile>
-        <profile>
             <id>coverage</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
+            <properties>
+                <db.url>jdbc:postgresql://127.0.0.1:5432/grabber</db.url>
+                <db.username>postgres</db.username>
+                <db.password>Password12!</db.password>
+                <db.driver>org.postgresql.Driver</db.driver>
+            </properties>
             <build>
                 <plugins>
                     <plugin>

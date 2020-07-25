@@ -11,7 +11,7 @@ os:
 services:
   - postgresql
 before_install:
-#  - psql -c 'create database product;' -U postgres
+  - psql -c 'create database grabber;' -U postgres
 
 addons:
   sonarcloud:
