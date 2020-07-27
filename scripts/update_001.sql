@@ -5,9 +5,10 @@ CREATE TABLE rabbit
 );
 CREATE TABLE post
 (
-    "id"      serial       NOT NULL PRIMARY KEY,
-    "name"    VARCHAR(80)  NOT NULL,
-    "text"    VARCHAR(300) NOT NULL,
-    "link"    VARCHAR(80)  NOT NULL,
-    "created" TIMESTAMP    NOT NULL
+    "id"      serial    NOT NULL PRIMARY KEY,
+    "post_id" int       NOT NULL UNIQUE,
+    "name"    VARCHAR   NOT NULL,
+    "text"    VARCHAR   NOT NULL,
+    "link"    VARCHAR   NOT NULL,
+    "created" TIMESTAMP NOT NULL
 );

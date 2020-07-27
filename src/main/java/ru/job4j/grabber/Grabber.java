@@ -4,10 +4,13 @@ import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.job4j.grabber.SqlRuParse.Post;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -20,6 +23,7 @@ import static org.quartz.TriggerBuilder.newTrigger;
  */
 public class Grabber implements Grab {
     private static final Logger LOG = LoggerFactory.getLogger(Grabber.class);
+    private static final String JOBOFFER = "https://www.sql.ru/forum/job-offers/";
     private static String app = Objects.requireNonNull(Grabber.class.getClassLoader().
             getResource("app.properties")).getFile();
     private final Properties cfg = new Properties();
@@ -30,8 +34,7 @@ public class Grabber implements Grab {
      * @return store store
      */
     public Store store() {
-        PsqlStore psqlStore = new PsqlStore(cfg);
-        return null;
+        return new PsqlStore(cfg);
     }
 
     /**
@@ -70,6 +73,7 @@ public class Grabber implements Grab {
         JobDataMap data = new JobDataMap();
         data.put("store", store);
         data.put("parse", parse);
+        data.put("scheduler", scheduler);
         JobDetail job = newJob(GrabJob.class)
                 .usingJobData(data)
                 .build();
@@ -98,6 +102,9 @@ public class Grabber implements Grab {
     }
 
     public static class GrabJob implements Job {
+        private static int curPage = 1;
+        private static int maxPage = 1;
+
         /**
          * execute.
          *
@@ -108,8 +115,32 @@ public class Grabber implements Grab {
         public void execute(final JobExecutionContext context) throws JobExecutionException {
             JobDataMap map = context.getJobDetail().getJobDataMap();
             Store store = (Store) map.get("store");
-            Parse parse = (Parse) map.get("store");
-            //TODO impl logic
+            Parse parse = (Parse) map.get("parse");
+            Scheduler scheduler = (Scheduler) map.get("scheduler");
+            try {
+                if (scheduler.getCurrentlyExecutingJobs().size() <= 1) {
+                    List<Post> listPage;
+                    List<Post> list = new ArrayList<>();
+                    maxPage = parse.maxPage();
+                    for (int n = 0; curPage <= maxPage && n < 3; ++curPage, n++) {
+                        listPage = parse.list(JOBOFFER.concat(String.valueOf(curPage)));
+                        list.addAll(listPage);
+                        store.save(listPage);
+                        LOG.info("{} Vacancies {}", curPage, list.size());
+                    }
+                } else {
+                    LOG.warn("More then one Job at once !!!!!!!!!!!!!!!!!!!!");
+                }
+            } catch (SchedulerException e) {
+                LOG.error(e.getMessage(), e);
+            }
+            if (curPage > maxPage) {
+                try {
+                    scheduler.shutdown();
+                } catch (SchedulerException e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
         }
     }
 }

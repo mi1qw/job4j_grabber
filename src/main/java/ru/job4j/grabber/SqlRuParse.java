@@ -46,10 +46,13 @@ public class SqlRuParse implements Parse {
     public List<Post> list(final String url) {
         List<Post> vacancies = new ArrayList<>();
         Document doc = null;
-        try {
-            doc = Jsoup.connect(url).get();
-        } catch (IOException e) {
-            LOG.error(e.getMessage(), e);
+        while (doc == null) {
+            try {
+                doc = Jsoup.connect(url).get();
+            } catch (IOException e) {
+                System.out.println("Нет инета list");
+                LOG.error(e.getMessage(), e);
+            }
         }
         assert doc != null;
         Element forumTable = doc.getElementsByClass("forumTable").first();
@@ -80,10 +83,13 @@ public class SqlRuParse implements Parse {
     @Override
     public Post detail(final String url) {
         Document doc = null;
-        try {
-            doc = Jsoup.connect(url).get();
-        } catch (IOException e) {
-            LOG.error(e.getMessage(), e);
+        while (doc == null) {
+            try {
+                doc = Jsoup.connect(url).get();
+            } catch (IOException e) {
+                System.out.println("Нет инета detail");
+                LOG.error(e.getMessage(), e);
+            }
         }
         assert doc != null;
         Element msg = doc.select(".msgTable").first();
@@ -93,8 +99,22 @@ public class SqlRuParse implements Parse {
         return new Post(id, href, name, aftor, date, created, text);
     }
 
-    private int maxPage() throws IOException {
-        Document doc = Jsoup.connect(JOBOFFER).get();
+    /**
+     * max number of Page.
+     *
+     * @return int max number
+     * @throws IOException IOException
+     */
+    public int maxPage() {
+        Document doc = null;
+        while (doc == null) {
+            try {
+                doc = Jsoup.connect(JOBOFFER).get();
+            } catch (IOException e) {
+                System.out.println("Нет инета maxPage");
+                LOG.error(e.getMessage(), e);
+            }
+        }
         Elements maxPages = doc.select("table[class=sort_options][style=font-weight: bold]");
         return Integer.parseInt(maxPages.select("a[href]").last().text());
     }
@@ -117,6 +137,69 @@ public class SqlRuParse implements Parse {
             this.date = date;
             this.created = created;
             this.text = text;
+        }
+
+        /**
+         * Gets id.
+         *
+         * @return the id
+         */
+        public String getId() {
+            return id;
+        }
+
+        /**
+         * Gets href.
+         *
+         * @return the href
+         */
+        public String getHref() {
+            return href;
+        }
+
+        /**
+         * Gets name.
+         *
+         * @return the name
+         */
+        public String getName() {
+            return name;
+        }
+
+        /**
+         * Gets aftor.
+         *
+         * @return the aftor
+         */
+        public String getAftor() {
+            return aftor;
+        }
+
+        /**
+         * Gets date.
+         *
+         * @return the date
+         */
+        public Timestamp getDate() {
+            return date;
+        }
+
+        /**
+         * Gets created.
+         *
+         * @return the created
+         */
+        public Timestamp getCreated() {
+            return created;
+        }
+
+        /**
+         * Gets text.
+         *
+         * @return the text
+         */
+        public String getText() {
+            return text;
         }
 
         /**
