@@ -14,27 +14,13 @@ import java.util.List;
 
 public class SqlRuParse implements Parse {
     private static final Logger LOG = LoggerFactory.getLogger(SqlRuParse.class);
-    private static final String JOBOFFER = "https://www.sql.ru/forum/job-offers/";
+    private static final String JOBOFFER = "https://www.sql.ru/forum/job-offers/1";
     private static final List<String> IGNOR = List.of("485068", "1196621", "484798");
     private String id;
     private String href;
     private String name;
     private String aftor;
     private Timestamp date;
-
-    /**
-     * Pars.
-     *
-     * @throws IOException the io exception
-     */
-    public void pars() throws IOException {
-        List<Post> list = new ArrayList<>();
-        int max = maxPage();
-        for (int i = 1; i <= max; i++) {
-            list.addAll(list(JOBOFFER.concat(String.valueOf(i))));
-            LOG.info("{} Vacancies {}", i, list.size());
-        }
-    }
 
     /**
      * Gets vacancies.
@@ -46,30 +32,29 @@ public class SqlRuParse implements Parse {
     public List<Post> list(final String url) {
         List<Post> vacancies = new ArrayList<>();
         Document doc = null;
-        while (doc == null) {
-            try {
+        try {
+            while (doc == null) {
                 doc = Jsoup.connect(url).get();
-            } catch (IOException e) {
-                System.out.println("Нет инета list");
-                LOG.error(e.getMessage(), e);
             }
-        }
-        assert doc != null;
-        Element forumTable = doc.getElementsByClass("forumTable").first();
-        Elements rows = forumTable.getElementsByTag("tr");
-        for (Element row : rows) {
-            Elements columns = row.getElementsByTag("td");
-            if (!columns.isEmpty()) {
-                href = columns.get(1).select("a").attr("href");
-                id = href.split("/")[4];
-                if (IGNOR.contains(id)) {
-                    continue;
+            Element forumTable = doc.getElementsByClass("forumTable").first();
+            Elements rows = forumTable.getElementsByTag("tr");
+            for (Element row : rows) {
+                Elements columns = row.getElementsByTag("td");
+                if (!columns.isEmpty()) {
+                    href = columns.get(1).select("a").attr("href");
+                    id = href.split("/")[4];
+                    if (IGNOR.contains(id)) {
+                        continue;
+                    }
+                    name = columns.get(1).text();
+                    aftor = columns.get(2).text();
+                    date = DateGrab.convertDate(columns.get(5).text());
+                    vacancies.add(detail(href));
                 }
-                name = columns.get(1).text();
-                aftor = columns.get(2).text();
-                date = DateGrab.convertDate(columns.get(5).text());
-                vacancies.add(detail(href));
             }
+        } catch (IOException e) {
+            System.out.println("Нет инета list");
+            LOG.error(e.getMessage(), e);
         }
         return vacancies;
     }
@@ -82,20 +67,22 @@ public class SqlRuParse implements Parse {
      */
     @Override
     public Post detail(final String url) {
+        Timestamp created = null;
+        String text = null;
         Document doc = null;
-        while (doc == null) {
-            try {
+        try {
+            while (doc == null) {
                 doc = Jsoup.connect(url).get();
-            } catch (IOException e) {
-                System.out.println("Нет инета detail");
-                LOG.error(e.getMessage(), e);
             }
+            //assert doc != null;
+            Element msg = doc.select(".msgTable").first();
+            String strDate = msg.select(".msgFooter").first().text();
+            created = DateGrab.convertDate(strDate.substring(0, strDate.indexOf("[") - 1));
+            text = msg.select(".msgBody").last().text();
+        } catch (IOException e) {
+            System.out.println("Нет инета detail");
+            LOG.error(e.getMessage(), e);
         }
-        assert doc != null;
-        Element msg = doc.select(".msgTable").first();
-        String strDate = msg.select(".msgFooter").first().text();
-        Timestamp created = DateGrab.convertDate(strDate.substring(0, strDate.indexOf("[") - 1));
-        String text = msg.select(".msgBody").last().text();
         return new Post(id, href, name, aftor, date, created, text);
     }
 
@@ -106,17 +93,19 @@ public class SqlRuParse implements Parse {
      * @throws IOException IOException
      */
     public int maxPage() {
+        int res = 0;
         Document doc = null;
-        while (doc == null) {
-            try {
+        try {
+            while (doc == null) {
                 doc = Jsoup.connect(JOBOFFER).get();
-            } catch (IOException e) {
-                System.out.println("Нет инета maxPage");
-                LOG.error(e.getMessage(), e);
             }
+            Elements maxPages = doc.select("table[class=sort_options][style=font-weight: bold]");
+            res = Integer.parseInt(maxPages.select("a[href]").last().text());
+        } catch (IOException e) {
+            System.out.println("Нет инета maxPage");
+            LOG.error(e.getMessage(), e);
         }
-        Elements maxPages = doc.select("table[class=sort_options][style=font-weight: bold]");
-        return Integer.parseInt(maxPages.select("a[href]").last().text());
+        return res;
     }
 
     public static class Post {

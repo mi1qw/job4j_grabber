@@ -7,6 +7,7 @@ import ru.job4j.grabber.SqlRuParse.Post;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -42,6 +43,7 @@ public class PsqlStore implements Store, AutoCloseable {
     @Override
     public void save(final List<Post> posts) {
         try (PreparedStatement prst = cnn.prepareStatement("INSERT INTO post VALUES (Default,?,?,?,?,?)")) {
+            boolean auto = cnn.getAutoCommit();
             cnn.setAutoCommit(false);
             for (Post post : posts) {
                 prst.setInt(1, Integer.parseInt(post.getId()));
@@ -53,23 +55,11 @@ public class PsqlStore implements Store, AutoCloseable {
             }
             prst.executeBatch();
             cnn.commit();
-            cnn.setAutoCommit(true);
+            cnn.setAutoCommit(auto);
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
         }
     }
-    //public void save(final Post post) {
-    //    try (PreparedStatement prst = cnn.prepareStatement("INSERT INTO post VALUES (Default,?,?,?,?,?)")) {
-    //        prst.setInt(1, Integer.parseInt(post.getId()));
-    //        prst.setString(2, post.getName());
-    //        prst.setString(3, post.getText());
-    //        prst.setString(4, post.getHref());
-    //        prst.setTimestamp(5, post.getCreated());
-    //        prst.executeUpdate();
-    //    } catch (SQLException e) {
-    //        LOG.error(e.getMessage(), e);
-    //    }
-    //}
 
     /**
      * getAll Posts.
@@ -107,9 +97,10 @@ public class PsqlStore implements Store, AutoCloseable {
     @Override
     public Post findById(final String id) {
         Post post = null;
+        ResultSet rs = null;
         try (PreparedStatement prst = cnn.prepareStatement("SELECT * FROM post where post_id=?")) {
             prst.setInt(1, Integer.parseInt(id));
-            ResultSet rs = prst.executeQuery();
+            rs = prst.executeQuery();
             if (rs.next()) {
                 post = new Post(
                         String.valueOf(rs.getInt(2)),
@@ -122,6 +113,12 @@ public class PsqlStore implements Store, AutoCloseable {
             }
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
+        } finally {
+            try {
+                Objects.requireNonNull(rs).close();
+            } catch (SQLException e) {
+                LOG.error(e.getMessage(), e);
+            }
         }
         return post;
     }
