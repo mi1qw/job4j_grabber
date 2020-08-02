@@ -105,7 +105,7 @@ public class PsqlStoreTest {
     //}
 
     @Test
-    public void a2getAll() {
+    public void a2getAll() throws Exception {
         System.out.println(mocki.getAll());
         Post ps = mocki.getAll().get(0);
         assertNull(ps.getAftor());

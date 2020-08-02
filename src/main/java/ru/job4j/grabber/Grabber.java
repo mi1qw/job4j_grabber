@@ -9,6 +9,9 @@ import ru.job4j.grabber.SqlRuParse.Post;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -91,23 +94,45 @@ public class Grabber implements Grab {
     }
 
     /**
+     * Web.
+     *
+     * @param store the store
+     */
+    public void web(final Store store) {
+        //System.out.println(store.getClass() + "   void web(final Store store)");
+        new Thread(() -> {
+            try (ServerSocket server = new ServerSocket(
+                    Integer.parseInt(cfg.getProperty("port")))) {
+                while (!server.isClosed()) {
+                    Socket socket = server.accept();
+                    try (OutputStream out = socket.getOutputStream()) {
+                        List<Post> list = store.getAll();
+                        System.out.println(list.size() + "    List<Post> list = store.getAll()");
+                        out.write((list.size() + " HTTP/1.1 200 OK\r\n\r\n").getBytes());
+                        for (Post post : list) {
+                            out.write(post.toString().getBytes());
+                            out.write(System.lineSeparator().getBytes());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }, "web").start();
+    }
+
+    /**
      * The entry point of application.
      *
      * @param args the input arguments
      * @throws Exception the exception
      */
     public static void main(final String[] args) throws Exception {
-        System.out.println("1 main запуск");
         Grabber grab = new Grabber();
-        System.out.println("2 main запуск");
         grab.cfg();
-        System.out.println("cfg " + cfg.size() + "  " + cfg.getClass());
-        System.out.println("3 main запуск");
         Scheduler scheduler = grab.scheduler();
-        System.out.println("4 main запуск");
         Store store = grab.store();
-        System.out.println("5 main запуск");
-
+        grab.web(store);
         System.out.println("main!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         System.out.println("store " + store.getClass());
         grab.init(new SqlRuParse(), store, scheduler);
@@ -140,12 +165,16 @@ public class Grabber implements Grab {
                     List<Post> listPage;
                     List<Post> list = new ArrayList<>();
                     maxPage = parse.maxPage();
-                    for (int n = 0; curPage <= maxPage && n < needPages; ++curPage, n++) {
+                    for (int n = 0; curPage <= maxPage
+                            & n < needPages;
+                         ++curPage, n++) {
                         listPage = parse.list(JOBOFFER.concat(String.valueOf(curPage)));
                         list.addAll(listPage);
                         LOG.info("{} Vacancies {}", curPage, list.size());
                     }
+                    System.out.println("store.save(list)");
                     store.save(list);
+                    System.out.println(store.getAll());
                 } else {
                     LOG.warn("More then one Job at once !!!!!!!!!!!!!!!!!!!!");
                 }

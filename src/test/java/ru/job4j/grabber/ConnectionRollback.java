@@ -37,7 +37,6 @@ final class ConnectionRollback {
                         rsl = method.invoke(connection, args);
                     } else if ("commit".equals(method.getName())) {
                         LOG.info("***    NOT commit !!! ***");
-
                     } else if ("prepareStatement".equals(method.getName())) {
                         rsl = method.invoke(connection, args);
                     } else {
