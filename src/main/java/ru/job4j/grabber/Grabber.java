@@ -37,8 +37,6 @@ public class Grabber implements Grab {
      * @return store store
      */
     public Store store() {
-        System.out.println("store!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        System.out.println("cfg " + cfg.size() + "  " + cfg.getClass());
         return new PsqlStore(cfg);
     }
 
@@ -60,7 +58,6 @@ public class Grabber implements Grab {
      * @throws IOException the io exception
      */
     public void cfg() throws IOException {
-        System.out.println(" cfg.load(in);");
         try (InputStream in = new FileInputStream(app)) {
             cfg.load(in);
         }
@@ -99,7 +96,6 @@ public class Grabber implements Grab {
      * @param store the store
      */
     public void web(final Store store) {
-        //System.out.println(store.getClass() + "   void web(final Store store)");
         new Thread(() -> {
             try (ServerSocket server = new ServerSocket(
                     Integer.parseInt(cfg.getProperty("port")))) {
@@ -107,7 +103,6 @@ public class Grabber implements Grab {
                     Socket socket = server.accept();
                     try (OutputStream out = socket.getOutputStream()) {
                         List<Post> list = store.getAll();
-                        System.out.println(list.size() + "    List<Post> list = store.getAll()");
                         out.write((list.size() + " HTTP/1.1 200 OK\r\n\r\n").getBytes());
                         for (Post post : list) {
                             out.write(post.toString().getBytes());
@@ -133,16 +128,13 @@ public class Grabber implements Grab {
         Scheduler scheduler = grab.scheduler();
         Store store = grab.store();
         grab.web(store);
-        System.out.println("main!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        System.out.println("store " + store.getClass());
         grab.init(new SqlRuParse(), store, scheduler);
     }
 
     public static class GrabJob implements Job {
-        private static int curPage = 1;
-        private static int maxPage = 1;
         private static int currExecJobs = 1;
         private static int needPages = 3;
+        private static int maxPage = 3;
 
         /**
          * execute.
@@ -152,12 +144,9 @@ public class Grabber implements Grab {
          */
         @Override
         public void execute(final JobExecutionContext context) throws JobExecutionException {
+            int curPage = 1;
             JobDataMap map = context.getJobDetail().getJobDataMap();
             Store store = (Store) map.get("store");
-
-            System.out.println("execute!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            System.out.println("store " + store.getClass());
-
             Parse parse = (Parse) map.get("parse");
             Scheduler scheduler = (Scheduler) map.get("scheduler");
             try {
@@ -166,15 +155,13 @@ public class Grabber implements Grab {
                     List<Post> list = new ArrayList<>();
                     maxPage = parse.maxPage();
                     for (int n = 0; curPage <= maxPage
-                            & n < needPages;
+                            && n < needPages;
                          ++curPage, n++) {
                         listPage = parse.list(JOBOFFER.concat(String.valueOf(curPage)));
                         list.addAll(listPage);
                         LOG.info("{} Vacancies {}", curPage, list.size());
                     }
-                    System.out.println("store.save(list)");
                     store.save(list);
-                    System.out.println(store.getAll());
                 } else {
                     LOG.warn("More then one Job at once !!!!!!!!!!!!!!!!!!!!");
                 }

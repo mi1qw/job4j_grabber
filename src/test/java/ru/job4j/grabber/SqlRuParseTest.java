@@ -35,7 +35,6 @@ import static org.powermock.api.mockito.PowerMockito.*;
 @PrepareForTest({SqlRuParse.class, Jsoup.class})
 public class SqlRuParseTest {
     private static final Logger LOG = LoggerFactory.getLogger(SqlRuParseTest.class);
-    public static final String DOC = "Doc.html";
     private static String html = "";
     private static String detailHtml = "";
     private static final String JOBOFFER = "https://www.sql.ru/forum/job-offers/1";

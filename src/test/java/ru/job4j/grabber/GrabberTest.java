@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static org.junit.Assert.assertTrue;
 import static org.powermock.api.mockito.PowerMockito.*;
 import static ru.job4j.grabber.PsqlStoreTest.init;
 import static ru.job4j.grabber.PsqlStoreTest.mockPsqlStoreConnect;
@@ -42,12 +43,8 @@ import static ru.job4j.grabber.SqlRuParseTest.readResource;
 @PrepareForTest({SqlRuParse.class, PsqlStore.class, Grabber.class, Jsoup.class})
 public class GrabberTest {
     private static final Logger LOG = LoggerFactory.getLogger(GrabberTest.class);
-    private static String fileDb = Objects.requireNonNull(PsqlStoreTest.class.getClassLoader().
-            getResource("app.properties")).getFile();
     private static String html = "";
     private static String detailHtml = "";
-    private static final String JOBOFFER = "https://www.sql.ru/forum/job-offers/";
-    private SqlRuParse sqlRuParse;
     private static Connection conn;
     private static final SqlRuParse.Post POST = new SqlRuParse.Post(
             "11",
@@ -78,10 +75,10 @@ public class GrabberTest {
     @Test
     public void a0mainWithProxy() throws Exception {
         PsqlStore psqlStore = mockPsqlStoreConnect(conn);
-        System.out.println("psqlStore " + psqlStore.getClass());
         whenNew(PsqlStore.class).withAnyArguments().thenReturn(psqlStore);
         doNothing().when(psqlStore).close();
         psqlStore.save(List.of(POST));
+
         Document doc = Jsoup.parseBodyFragment(html);
         Document detail = Jsoup.parseBodyFragment(detailHtml);
         mockStatic(Jsoup.class);
@@ -96,7 +93,9 @@ public class GrabberTest {
         doReturn(detail).when(connection1).get();
         new Thread(new ClientThread(), "alpha").start();
         Grabber.main(new String[]{});
+
         Thread.sleep(Duration.ofSeconds(2).toMillis());
+        assertTrue(true);
     }
 
     @Test
@@ -105,6 +104,7 @@ public class GrabberTest {
         whenNew(ServerSocket.class).withAnyArguments().thenReturn(serverSocket);
         when(serverSocket.isClosed()).thenReturn(true);
         Grabber.main(new String[]{});
+        assertTrue(true);
     }
 
     @Test
@@ -112,9 +112,9 @@ public class GrabberTest {
         whenNew(ArrayList.class).withNoArguments().thenThrow(new SchedulerException());
         PsqlStore psqlStore = mockPsqlStoreConnect(conn);
         whenNew(PsqlStore.class).withAnyArguments().thenReturn(psqlStore);
-        doThrow(new SQLException()).when(psqlStore).close();
         Grabber.main(new String[]{});
         Thread.sleep(Duration.ofSeconds(1).toMillis());
+        assertTrue(true);
     }
 
     @Test
@@ -126,6 +126,7 @@ public class GrabberTest {
         );
         Grabber.main(new String[]{});
         Thread.sleep(Duration.ofSeconds(1).toMillis());
+        assertTrue(true);
     }
 
     @Test
@@ -137,5 +138,22 @@ public class GrabberTest {
         );
         Grabber.main(new String[]{});
         Thread.sleep(Duration.ofSeconds(1).toMillis());
+        assertTrue(true);
+    }
+
+    @Test
+    public void a14executeClose() throws Exception {
+        whenNew(ArrayList.class).withNoArguments().thenThrow(new SchedulerException());
+        PsqlStore psqlStore = mockPsqlStoreConnect(conn);
+        whenNew(PsqlStore.class).withAnyArguments().thenReturn(psqlStore);
+        doThrow(new Exception()).when(psqlStore).close();
+        Whitebox.setInternalState(
+                Grabber.GrabJob.class,
+                "maxPage",
+                0
+        );
+        Grabber.main(new String[]{});
+        Thread.sleep(Duration.ofSeconds(1).toMillis());
+        assertTrue(true);
     }
 }

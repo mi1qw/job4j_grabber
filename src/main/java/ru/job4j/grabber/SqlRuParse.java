@@ -53,7 +53,7 @@ public class SqlRuParse implements Parse {
                 }
             }
         } catch (IOException e) {
-            System.out.println("Нет инета list");
+            LOG.warn("Нет инета list");
             LOG.error(e.getMessage(), e);
         }
         return vacancies;
@@ -74,13 +74,12 @@ public class SqlRuParse implements Parse {
             while (doc == null) {
                 doc = Jsoup.connect(url).get();
             }
-            //assert doc != null;
             Element msg = doc.select(".msgTable").first();
             String strDate = msg.select(".msgFooter").first().text();
             created = DateGrab.convertDate(strDate.substring(0, strDate.indexOf("[") - 1));
             text = msg.select(".msgBody").last().text();
         } catch (IOException e) {
-            System.out.println("Нет инета detail");
+            LOG.warn("Нет инета detail");
             LOG.error(e.getMessage(), e);
         }
         return new Post(id, href, name, aftor, date, created, text);
@@ -102,7 +101,7 @@ public class SqlRuParse implements Parse {
             Elements maxPages = doc.select("table[class=sort_options][style=font-weight: bold]");
             res = Integer.parseInt(maxPages.select("a[href]").last().text());
         } catch (IOException e) {
-            System.out.println("Нет инета maxPage");
+            LOG.warn("Нет инета maxPage");
             LOG.error(e.getMessage(), e);
         }
         return res;

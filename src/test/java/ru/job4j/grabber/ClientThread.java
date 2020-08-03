@@ -33,7 +33,6 @@ public class ClientThread implements Runnable {
     @Override
     public void run() {
         LOG.info(Thread.currentThread().getName());
-        //System.out.println(Thread.currentThread().getName());
         int n = 200;
         while (n-- != 0) {
             try (Socket socket = new Socket(InetAddress.getLoopbackAddress(), 9000);
@@ -44,11 +43,12 @@ public class ClientThread implements Runnable {
                          socket.getOutputStream(),
                          true, StandardCharsets.UTF_8)) {
                 while (reader.ready()) {
-                    System.out.println("Client get - " + reader.readLine());
+                    LOG.info("Client get - {}", reader.readLine());
                 }
                 writer.println("GET /?msg=Exit HTTP/1.1");
                 writer.flush();
-                System.out.println("Client sended");
+                LOG.info("Client sended");
+
                 await().atLeast(50, TimeUnit.MILLISECONDS)
                         .atMost(3000, TimeUnit.MILLISECONDS)
                         .until(socket::isConnected);
@@ -58,43 +58,3 @@ public class ClientThread implements Runnable {
         }
     }
 }
-
-//public class EchoServerTest extends Mockito {
-//    private static final Logger LOG = LoggerFactory.getLogger(EchoServerTest.class);
-//    private static final String LN = System.lineSeparator();
-//    private static Connection conn;
-//    private static final SqlRuParse.Post POST = new SqlRuParse.Post(
-//            "11",
-//            "https://www.sql.ru/",
-//            "name",
-//            "aftor",
-//            Timestamp.valueOf("2020-6-28 00:00:00"),
-//            Timestamp.valueOf("2020-6-28 00:00:00"),
-//            "text"
-//    );
-
-//@Test
-//public void my() throws Exception {
-//    conn = ConnectionRollback.create(init());
-//    //conn = init();
-//    //PsqlStore psqlStore = mockPsqlStoreConnect(conn);
-//    PsqlStore psqlStore = mockPsqlStoreConnect(conn);
-//    psqlStore.save(List.of(POST));
-//    System.out.println(psqlStore.getAll());
-//    System.out.println(conn + "   my() throws Exception");
-//    System.out.println(psqlStore + "   my() throws Exception");
-//    whenNew(PsqlStore.class).withAnyArguments().thenReturn(psqlStore);
-//    doNothing().when(psqlStore).;
-//
-//    doNothing().when(psqlStore).close();
-//
-//
-//    ClientThread clientThread = new ClientThread();
-//    Thread alpha = new Thread(clientThread, "alpha");
-//    alpha.start();
-//
-//    Grabber.main(new String[]{});
-//    Thread.sleep(7000);
-//    assertTrue(true);
-//}
-//}

@@ -67,11 +67,6 @@ public class PsqlStoreTest {
     @Test
     public void a1save() throws Exception {
         mocki = mockPsqlStoreConnect(conn);
-        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        System.out.println(mocki.getAll());
-
         mocki.save(List.of(POST));
         mocki.getAll().get(0).getHref();
         assertThat(mocki.getAll().get(0).getHref(),
@@ -93,20 +88,9 @@ public class PsqlStoreTest {
         }
         return mockin;
     }
-    //private PsqlStore mockPsqlStoreConnect(final FileInputStream in, final Connection conn) throws Exception {
-    //    Properties cfg = new Properties();
-    //    cfg.load(in);
-    //    PsqlStore psqlStore = new PsqlStore(cfg);
-    //    mocki = spy(psqlStore);
-    //    Field cnn = psqlStore.getClass().getDeclaredField("cnn");
-    //    cnn.setAccessible(true);
-    //    cnn.set(mocki, conn);
-    //    return mocki;
-    //}
 
     @Test
     public void a2getAll() throws Exception {
-        System.out.println(mocki.getAll());
         Post ps = mocki.getAll().get(0);
         assertNull(ps.getAftor());
         assertNull(ps.getDate());
@@ -128,26 +112,10 @@ public class PsqlStoreTest {
     public void a5SaveException() throws Exception {
         Connection connection = mock(Connection.class);
         doThrow(new SQLException()).when(connection).prepareStatement(any());
-        //try (FileInputStream in = new FileInputStream(fileDb)) {
         mocki = mockPsqlStoreConnect(connection);
         mocki.save(List.of(POST));
-        //} catch (IOException e) {
-        //    LOG.error(e.getMessage(), e);
-        //}
         assertTrue(true);
     }
-    //@Test
-    //public void a5SaveException() throws Exception {
-    //    Connection connection = mock(Connection.class);
-    //    doThrow(new SQLException()).when(connection).prepareStatement(any());
-    //    try (FileInputStream in = new FileInputStream(fileDb)) {
-    //        mocki = mockPsqlStoreConnect(in, connection);
-    //        mocki.save(List.of(POST));
-    //    } catch (IOException e) {
-    //        LOG.error(e.getMessage(), e);
-    //    }
-    //    assertTrue(true);
-    //}
 
     @Test
     public void a6getAllException() throws SQLException {
@@ -166,12 +134,8 @@ public class PsqlStoreTest {
         doReturn(pgResultSet).when(preparedStatement).executeQuery();
         doThrow(new SQLException()).when(pgResultSet).next();
         doThrow(new SQLException()).when(pgResultSet).close();
-        //try (FileInputStream in = new FileInputStream(fileDb)) {
         mocki = mockPsqlStoreConnect(connection);
         mocki.findById("1");
-        //} catch (IOException e) {
-        //    LOG.error(e.getMessage(), e);
-        //}
         assertTrue(true);
     }
 
@@ -183,25 +147,16 @@ public class PsqlStoreTest {
         doReturn(preparedStatement).when(connection).prepareStatement(any());
         doReturn(pgResultSet).when(preparedStatement).executeQuery();
         doReturn(false).when(pgResultSet).next();
-
-        //try (FileInputStream in = new FileInputStream(fileDb)) {
         mocki = mockPsqlStoreConnect(connection);
         mocki.findById("1");
         mocki.close();
-        //} catch (IOException e) {
-        //    LOG.error(e.getMessage(), e);
-        //}
         assertTrue(true);
     }
 
     @Test
     public void z1close() throws Exception {
-        //try (FileInputStream in = new FileInputStream(fileDb)) {
         mocki = mockPsqlStoreConnect(null);
         mocki.close();
-        //} catch (IOException e) {
-        //    LOG.error(e.getMessage(), e);
-        //}
         assertTrue(true);
     }
 
