@@ -1,13 +1,8 @@
 package ru.job4j.grabber;
 
-//import org.jsoup.Connection;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.junit.runners.MethodSorters;
@@ -20,6 +15,7 @@ import org.quartz.SchedulerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.sql.Connection;
@@ -30,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertTrue;
 import static org.powermock.api.mockito.PowerMockito.*;
 import static ru.job4j.grabber.PsqlStoreTest.init;
@@ -55,9 +53,10 @@ public class GrabberTest {
             Timestamp.valueOf("2020-6-28 00:00:00"),
             "text"
     );
+    private static PsqlStore psqlStore;
 
     @BeforeClass
-    public static void setUp() throws SQLException {
+    public static void setUp() throws Exception {
         InputStream docHTML = Objects.requireNonNull(
                 GrabberTest.class.getClassLoader()).getResourceAsStream("Doc.html");
         InputStream detailHTML = Objects.requireNonNull(
@@ -65,6 +64,7 @@ public class GrabberTest {
         html = readResource(docHTML);
         detailHtml = readResource(detailHTML);
         conn = ConnectionRollback.create(init());
+        psqlStore = mockPsqlStoreConnect(conn);
     }
 
     @AfterClass
@@ -72,13 +72,96 @@ public class GrabberTest {
         conn.close();
     }
 
-    @Test
-    public void a0mainWithProxy() throws Exception {
-        PsqlStore psqlStore = mockPsqlStoreConnect(conn);
+    @Before
+    public void before() throws Exception {
         whenNew(PsqlStore.class).withAnyArguments().thenReturn(psqlStore);
-        doNothing().when(psqlStore).close();
-        psqlStore.save(List.of(POST));
+    }
 
+    @Test
+    public void a0011WebisClosed() throws Exception {
+        ServerSocket serverSocket = mock(ServerSocket.class);
+        whenNew(ServerSocket.class).withAnyArguments().thenReturn(serverSocket);
+        when(serverSocket.isClosed()).thenReturn(true);
+        Grabber.main(new String[]{});
+        assertTrue(true);
+    }
+
+    @Test
+    public void a0011WebException() throws Exception {
+        new Grabber().web(psqlStore);
+        assertTrue(true);
+    }
+
+    @Test
+    public void a2mainSchedulerException() throws Exception {
+        whenNew(ArrayList.class).withNoArguments().thenThrow(new SchedulerException());
+        Grabber.main(new String[]{});
+        Thread.sleep(Duration.ofSeconds(1).toMillis());
+        assertTrue(true);
+    }
+
+    @Test
+    public void a1mainCurrExecJobs() throws Exception {
+        //doNothing().when(psqlStore).close();
+        doThrow(new Exception()).when(psqlStore).close();
+        Whitebox.setInternalState(
+                Grabber.GrabJob.class,
+                "currExecJobs",
+                0
+        );
+        Whitebox.setInternalState(
+                Grabber.GrabJob.class,
+                "maxPage",
+                0
+        );
+        Grabber.main(new String[]{});
+        Thread.sleep(Duration.ofSeconds(1).toMillis());
+        Whitebox.setInternalState(
+                Grabber.GrabJob.class,
+                "currExecJobs",
+                1
+        );
+        Whitebox.setInternalState(
+                Grabber.GrabJob.class,
+                "maxPage",
+                3
+        );
+        assertTrue(true);
+    }
+
+    @Test
+    public void a3mainNeedPages() throws Exception {
+        doNothing().when(psqlStore).close();
+        setJSOUP();
+        Whitebox.setInternalState(
+                Grabber.GrabJob.class,
+                "needPages",
+                0
+        );
+
+        Grabber.main(new String[]{});
+        Thread.sleep(Duration.ofSeconds(1).toMillis());
+        Whitebox.setInternalState(
+                Grabber.GrabJob.class,
+                "needPages",
+                3
+        );
+        assertTrue(true);
+    }
+
+    @Test
+    public void a9mainWithProxy() throws Exception {
+        psqlStore.save(List.of(POST));
+        setJSOUP();
+        new Thread(new ClientThread(), "alpha").start();
+        Grabber.main(new String[]{});
+        Thread.sleep(Duration.ofSeconds(2).toMillis());
+        assertThat(
+                psqlStore.getAll().get(0).getHref(),
+                is(POST.getHref()));
+    }
+
+    private void setJSOUP() throws IOException {
         Document doc = Jsoup.parseBodyFragment(html);
         Document detail = Jsoup.parseBodyFragment(detailHtml);
         mockStatic(Jsoup.class);
@@ -91,69 +174,5 @@ public class GrabberTest {
                 .connect("https://www.sql.ru/forum/1327759/senior-oracle-developer-moskva-do-235-000-na-ruki"))
                 .thenReturn(connection1);
         doReturn(detail).when(connection1).get();
-        new Thread(new ClientThread(), "alpha").start();
-        Grabber.main(new String[]{});
-
-        Thread.sleep(Duration.ofSeconds(2).toMillis());
-        assertTrue(true);
-    }
-
-    @Test
-    public void zWebisClosed() throws Exception {
-        ServerSocket serverSocket = mock(ServerSocket.class);
-        whenNew(ServerSocket.class).withAnyArguments().thenReturn(serverSocket);
-        when(serverSocket.isClosed()).thenReturn(true);
-        Grabber.main(new String[]{});
-        assertTrue(true);
-    }
-
-    @Test
-    public void a121mainSchedulerException() throws Exception {
-        whenNew(ArrayList.class).withNoArguments().thenThrow(new SchedulerException());
-        PsqlStore psqlStore = mockPsqlStoreConnect(conn);
-        whenNew(PsqlStore.class).withAnyArguments().thenReturn(psqlStore);
-        Grabber.main(new String[]{});
-        Thread.sleep(Duration.ofSeconds(1).toMillis());
-        assertTrue(true);
-    }
-
-    @Test
-    public void a13mainCurrExecJobs() throws Exception {
-        Whitebox.setInternalState(
-                Grabber.GrabJob.class,
-                "currExecJobs",
-                0
-        );
-        Grabber.main(new String[]{});
-        Thread.sleep(Duration.ofSeconds(1).toMillis());
-        assertTrue(true);
-    }
-
-    @Test
-    public void a12mainNeedPages() throws Exception {
-        Whitebox.setInternalState(
-                Grabber.GrabJob.class,
-                "needPages",
-                0
-        );
-        Grabber.main(new String[]{});
-        Thread.sleep(Duration.ofSeconds(1).toMillis());
-        assertTrue(true);
-    }
-
-    @Test
-    public void a14executeClose() throws Exception {
-        whenNew(ArrayList.class).withNoArguments().thenThrow(new SchedulerException());
-        PsqlStore psqlStore = mockPsqlStoreConnect(conn);
-        whenNew(PsqlStore.class).withAnyArguments().thenReturn(psqlStore);
-        doThrow(new Exception()).when(psqlStore).close();
-        Whitebox.setInternalState(
-                Grabber.GrabJob.class,
-                "maxPage",
-                0
-        );
-        Grabber.main(new String[]{});
-        Thread.sleep(Duration.ofSeconds(1).toMillis());
-        assertTrue(true);
     }
 }

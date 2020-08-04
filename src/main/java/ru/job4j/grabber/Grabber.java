@@ -170,8 +170,8 @@ public class Grabber implements Grab {
             }
             if (curPage > maxPage) {
                 try {
-                    scheduler.shutdown();
                     store.close();
+                    scheduler.shutdown();
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);
                 }

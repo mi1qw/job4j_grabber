@@ -73,19 +73,30 @@ public class PsqlStore implements Store, AutoCloseable {
             prst.executeQuery();
             ResultSet rs = prst.getResultSet();
             while (rs.next()) {
-                list.add(new Post(
-                        String.valueOf(rs.getInt(2)),
-                        rs.getString(5),
-                        rs.getString(3),
-                        null,
-                        null,
-                        rs.getTimestamp(6),
-                        rs.getString(4)));
+                list.add(newPost(rs));
             }
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
         }
         return list;
+    }
+
+    /**
+     * newPost.
+     *
+     * @param rs ResultSet
+     * @return Post
+     * @throws SQLException
+     */
+    private Post newPost(final ResultSet rs) throws SQLException {
+        return new Post(
+                String.valueOf(rs.getInt(2)),
+                rs.getString(5),
+                rs.getString(3),
+                null,
+                null,
+                rs.getTimestamp(6),
+                rs.getString(4));
     }
 
     /**
@@ -102,14 +113,7 @@ public class PsqlStore implements Store, AutoCloseable {
             prst.setInt(1, Integer.parseInt(id));
             rs = prst.executeQuery();
             if (rs.next()) {
-                post = new Post(
-                        String.valueOf(rs.getInt(2)),
-                        rs.getString(5),
-                        rs.getString(3),
-                        null,
-                        null,
-                        rs.getTimestamp(6),
-                        rs.getString(4));
+                post = newPost(rs);
             }
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
